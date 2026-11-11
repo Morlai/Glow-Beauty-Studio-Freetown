@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Glow Beauty Studio – Festive Makeup, Hair and Nails in Freetown</title>
 <style>
 :root{--plum:#3b1a2e;--rose:#c94f6d;--gold:#b8801f;--gold-bg:#f6e6c4;--bg:#faf5f8;--card:#fff;--ink:#2a1623;--mute:#7a6573;--line:#e8dce3;--ok:#2f7a4f;--warn:#b3541e;--r:10px}
@@ -305,6 +305,30 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
 .okmsg:empty,.sumline:empty,#bkErr:empty{display:none}
 #sendBk{margin-top:6px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* === FIT ANY SCREEN (phones, tablets, desktop) === */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;max-width:100%}
+body{overflow-x:hidden;max-width:100%;min-width:320px}
+img,svg,video{max-width:100%}
+.wrap{max-width:1200px;width:100%}
+h1,h2,h3,p,li,b,span{overflow-wrap:break-word}
+.brand{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:760px){
+ /* 16px stops iPhones from zooming in when a field is tapped */
+ input,select,textarea{font-size:16px}
+ .pub{padding:40px 16px}
+ .btn.sm{padding:7px 12px}
+}
+@media(max-width:480px){
+ .bar2{gap:10px;padding:10px 14px}
+ .brand{font-size:17px}
+ .slide>.sl-in{padding:0 48px}
+ .eyebrow{font-size:13px}
+ .foot{padding:28px 16px 16px}
+}
+@media(max-width:340px){
+ #topBook{display:none}
+}
 </style>
 </head>
 <body>
