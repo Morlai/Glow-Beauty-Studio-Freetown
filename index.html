@@ -167,7 +167,9 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
  .slide{padding:40px 18px 64px;min-height:clamp(420px,calc(100svh - var(--hh) - 40px),680px)}
  .slide img.bg{object-position:72% center}
  .slide:after{background:rgba(25,8,20,.68)}
- .arr{display:none}
+ .arr{display:block;width:38px;height:38px;font-size:22px;line-height:1;padding:0;background:rgba(25,8,20,.55);z-index:5}
+ .prev{left:6px}.next{right:6px}
+ .slide>.sl-in{padding:0 52px}
  .slide .btn.big{padding:11px 18px;font-size:16px}
  .eyebrow{font-size:14px}
 }
@@ -436,17 +438,66 @@ $("sendBk").onclick=async()=>{
 };
 updSum();
 
-// Carousel
-(function(){const tr=$("track"),dots=[...$("dots").children];let i=0,t;
- const go=n=>{i=(n+3)%3;tr.style.transform=`translateX(-${i*100}%)`;dots.forEach((d,k)=>d.setAttribute("aria-current",k===i));};
- const play=()=>{clearInterval(t);if(!matchMedia("(prefers-reduced-motion:reduce)").matches)t=setInterval(()=>go(i+1),5500)};
- dots.forEach((d,k)=>d.onclick=()=>{go(k);play()});
- $("prev").onclick=()=>{go(i-1);play()};$("next").onclick=()=>{go(i+1);play()};
- const h=$("home");h.onmouseenter=()=>clearInterval(t);h.onmouseleave=play;h.onfocusin=()=>clearInterval(t);h.onfocusout=play;
+// Carousel (seamless infinite loop)
+(function(){
+ const tr=$("track"),dots=[...$("dots").children],N=3;
+ // clone the first slide at the end so the last -> first move keeps sliding forward
+ const clone=tr.children[0].cloneNode(true);
+ clone.setAttribute("aria-hidden","true");
+ clone.querySelectorAll("a,button").forEach(e=>e.tabIndex=-1);
+ tr.appendChild(clone);
+
+ let i=0,t,busy=false,fb;
+ const setDots=()=>dots.forEach((d,k)=>d.setAttribute("aria-current",k===i%N));
+ const move=(n,anim)=>{
+  tr.style.transition=(anim&&!calm)?"":"none";
+  tr.style.transform=`translateX(-${n*100}%)`;
+  i=n;setDots();
+ };
+ // after reaching the clone, silently jump back to the real first slide
+ const settle=()=>{
+  clearTimeout(fb);
+  if(i===N){move(0,false);tr.offsetWidth;}   // offsetWidth forces reflow
+  busy=false;
+ };
+ tr.addEventListener("transitionend",e=>{if(e.target===tr&&e.propertyName==="transform")settle()});
+ const run=fn=>{if(busy)return;busy=true;fn();fb=setTimeout(settle,750)}; // fallback if transitionend doesn't fire
+
+ const next=()=>run(()=>move(i+1,true));
+ const prev=()=>run(()=>{
+  if(i===0){move(N,false);tr.offsetWidth;}   // jump to the clone, then slide back
+  move(i-1,true);
+ });
+ const goTo=k=>run(()=>move(k,true));
+
+ // autoplay always runs; with reduced-motion the slides change without the slide animation
+ const calm=matchMedia("(prefers-reduced-motion:reduce)").matches;
+ const play=()=>{clearInterval(t);t=setInterval(next,5500)};
+ dots.forEach((d,k)=>d.onclick=()=>{goTo(k);play()});
+ $("prev").onclick=()=>{prev();play()};
+ $("next").onclick=()=>{next();play()};
+
+ const h=$("home");
+ // pause only for a real mouse or keyboard focus (touch screens fake hover and would freeze the slider)
+ h.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")clearInterval(t)});
+ h.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")play()});
+ h.addEventListener("focusin",e=>{if(e.target.matches(":focus-visible"))clearInterval(t)});
+ h.addEventListener("focusout",play);
+
+ // swipe on phones
  let x0=null;const c=document.querySelector(".car");
  c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
- c.addEventListener("touchend",e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40){go(i+(dx<0?1:-1));play()}});
- go(0);play();})();
+ c.addEventListener("touchend",e=>{
+  if(x0===null)return;
+  const dx=e.changedTouches[0].clientX-x0;x0=null;
+  if(Math.abs(dx)>40){dx<0?next():prev();play()}
+ });
+
+ // pause while the tab is hidden, resume when visible
+ document.addEventListener("visibilitychange",()=>{document.hidden?clearInterval(t):play()});
+
+ move(0,false);play();
+})();
 
 // Header nav: mobile menu and active link
 (function(){const L=$("links"),B=$("menuBtn");
