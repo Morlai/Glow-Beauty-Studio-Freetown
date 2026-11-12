@@ -13,9 +13,13 @@ window.GLOW={
   waShow:"+232 76 391 399",
   // Studio address (shown in "Find us", the footer and the map)
   address:"2 Fisher Street, Off Abach Street, Freetown",
-  // Opening hours shown in "Find us". Leave empty [] to show "Open by appointment".
-  // Example: hours:[{d:"Monday to Saturday",t:"9:00 am to 6:00 pm"},{d:"Sunday",t:"Closed"}],
-  hours:[],
+  // Opening hours shown in "Find us". SAMPLE HOURS: change them to your real hours.
+  // Leave empty [] to show "Open by appointment" instead.
+  hours:[
+    {d:"Monday to Friday",t:"9:00 am to 6:00 pm"},
+    {d:"Saturday",t:"9:00 am to 5:00 pm"},
+    {d:"Sunday",t:"Closed"}
+  ],
   services:[
     // Makeup
     {n:"Bridal makeup",p:600},
