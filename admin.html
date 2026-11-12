@@ -298,6 +298,17 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
   .slide{height:clamp(460px,75vh,640px) !important}
   .slide .lead{font-size:15px}
 }
+.ph{font:700 20px Georgia,serif;margin:0 0 10px}
+.pt{margin:10px 0 0;font-weight:700}
+.chips button.x{margin-left:6px;padding:0}
+@media print{
+ body *{visibility:hidden!important}
+ #printArea,#printArea *{visibility:visible!important}
+ #printArea{position:absolute;left:0;top:0;width:100%;background:#fff!important;color:#000!important;margin:0!important}
+ #printArea th,#printArea td{color:#000!important;border-bottom:1px solid #999!important}
+ #printArea .warn{color:#000!important}
+ @page{margin:14mm}
+}
 </style>
 </head>
 <body>
@@ -401,8 +412,24 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
     <p class="warn" id="bkMsg"></p>
     <p style="color:var(--mute);font-size:13px;margin:0">15% off applies when the appointment is in December and the booking is made before 30 November.</p>
   </div>
+  <div class="card"><h2>Daily schedule</h2>
+    <div class="form">
+      <div><label for="schDate">Date</label><input id="schDate" type="date"></div>
+      <button class="btn" id="schPrint" type="button">Print schedule</button>
+    </div>
+    <div id="printArea" style="margin-top:16px"></div>
+  </div>
+  <div class="card"><h2>Closed days</h2>
+    <p style="color:var(--mute);margin:0 0 12px">Block the days you are closed. Customers cannot book a blocked day on the website.</p>
+    <div class="form">
+      <div><label for="blkDate">Date</label><input id="blkDate" type="date" min="2026-12-01" max="2026-12-31"></div>
+      <button class="btn" id="blkAdd" type="button">Block this day</button>
+    </div>
+    <p class="warn" id="blkMsg"></p>
+    <div class="chips" id="blkList"></div>
+  </div>
   <div class="card"><h2>December diary</h2>
-    <p style="margin:-4px 0 12px;color:var(--mute);font-size:13px"><button class="btn ghost sm" id="refreshBk" type="button">Refresh</button> <span id="lastSync"></span></p>
+    <p style="margin:-4px 0 12px;color:var(--mute);font-size:13px"><button class="btn ghost sm" id="refreshBk" type="button">Refresh</button> <button class="btn ghost sm" id="exportBk" type="button">Download spreadsheet (CSV)</button> <span id="lastSync"></span></p>
     <div class="filters" id="filters"></div>
     <div class="scroll"><table><thead><tr><th>Date and time</th><th>Client</th><th>Service</th><th>Price (Le)</th><th>Offer</th><th>Status</th><th>WhatsApp</th><th></th></tr></thead><tbody id="bkBody"></tbody></table></div>
   </div>
@@ -448,8 +475,8 @@ let S;
 try{S=JSON.parse(localStorage.getItem(KEY))||defaults}catch(e){S=defaults}
 if(!S.wa&&G.wa)S.wa=G.wa; // studio number from config.js
 if(G.services)S.services=G.services.map(x=>({...x})); // services always come from config.js
-S.bookings=[]; // bookings live on the server
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,bookings:[]}))}catch(e){}};
+S.bookings=[];S.blocked=[]; // bookings and closed days live on the server
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,bookings:[],blocked:[]}))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const le=n=>"Le "+Math.round(n).toLocaleString("en");
 const digits=()=>S.wa.replace(/\D/g,"");
@@ -525,6 +552,35 @@ function waCell(b){
  const t=(WA_MSG[b.status]||WA_MSG.Pending)(b);
  return`<a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/${n}?text=${encodeURIComponent(t)}">WhatsApp</a><br><small style="color:var(--mute)">${WA_LBL[b.status]||""}</small>`;
 }
+// Daily schedule, closed days and spreadsheet download
+const fmtDate=d=>new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const t12=t=>{const [h,mi]=String(t).split(":").map(Number);return isNaN(h)?t:(h%12||12)+":"+String(mi).padStart(2,"0")+" "+(h<12?"am":"pm")};
+let schTouched=false;
+function renderSchedule(){
+ const inp=$("schDate");
+ if(!schTouched){
+  const ups=S.bookings.filter(b=>b.date>=todayISO&&b.status!=="Cancelled").map(b=>b.date).sort()[0];
+  inp.value=ups||"2026-12-01";
+ }
+ const d=inp.value;if(!d)return;
+ const list=S.bookings.filter(b=>b.date===d&&b.status!=="Cancelled").sort((a,b)=>a.time.localeCompare(b.time));
+ const total=list.reduce((a,b)=>a+priceOf(b),0);
+ $("printArea").innerHTML=`<h3 class="ph">Glow Beauty Studio · Schedule for ${fmtDate(d)}</h3>`
+  +(S.blocked.includes(d)?'<p class="warn">The studio is marked closed on this day.</p>':"")
+  +(list.length?`<div class="scroll"><table><thead><tr><th>Time</th><th>Client</th><th>WhatsApp</th><th>Service</th><th>Price (Le)</th><th>Status</th><th>Done</th></tr></thead><tbody>${list.map(b=>`<tr><td>${t12(b.time)}</td><td>${esc(b.name)}<br><small>${esc(b.occ)}</small></td><td>${esc(b.phone||"")}</td><td>${esc(b.svc)}</td><td>${le(priceOf(b))}</td><td>${esc(b.status)}</td><td>☐</td></tr>`).join("")}</tbody></table></div><p class="pt">${list.length} ${list.length===1?"appointment":"appointments"} · Expected income ${le(total)}</p>`:'<p class="empty">No bookings on this day.</p>');
+}
+function renderBlocked(){
+ $("blkList").innerHTML=S.blocked.length?S.blocked.map(d=>`<span class="no">${esc(fmtDate(d))}<button class="x" data-ub="${esc(d)}" aria-label="Open ${esc(d)} again" title="Open this day again">×</button></span>`).join(""):'<span style="border:0;color:var(--mute)">No closed days set.</span>';
+}
+function downloadCSV(){
+ if(!S.bookings.length){alert("There are no bookings to download yet.");return}
+ const rows=[["Date","Time","Client","WhatsApp","Service","Occasion","List price (Le)","Price after offer (Le)","15% offer","Status","Booked on"]];
+ S.bookings.slice().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).forEach(b=>rows.push([b.date,b.time,b.name,b.phone,b.svc,b.occ,b.price,Math.round(priceOf(b)),eligible(b)?"Yes":"No",b.status,b.made]));
+ const cell=v=>{let t=String(v==null?"":v);if(/^[=+\-@\t\r]/.test(t))t="'"+t;return'"'+t.replace(/"/g,'""')+'"'};
+ const csv="\ufeff"+rows.map(r=>r.map(cell).join(",")).join("\r\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="glow-bookings-"+todayISO+".csv";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
 function renderBookings(){
  const B=S.bookings,act=B.filter(b=>b.status!=="Cancelled");
  const rev=act.reduce((a,b)=>a+priceOf(b),0),days=new Set(act.map(b=>b.date)).size;
@@ -574,7 +630,7 @@ function renderOverview(){
 }
 $("tgt").onchange=e=>{S.targetLe=Math.max(100,+e.target.value||10000);save();renderOverview()};
 {const a=renderCampaign,b=renderBookings,t=renderTasks;
-renderCampaign=function(){a();renderOverview()};renderBookings=function(){b();renderOverview()};renderTasks=function(){t();renderOverview()};}
+renderCampaign=function(){a();renderOverview()};renderBookings=function(){b();renderOverview();renderSchedule();renderBlocked()};renderTasks=function(){t();renderOverview()};}
 renderCampaign();renderBookings();renderTasks();
 
 // Booking server connection and PIN gate
@@ -588,7 +644,7 @@ async function api(method,body,id){
 }
 async function loadBookings(){
  const r=await api("GET");
- if(r.ok){S.bookings=r.data.bookings||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+ if(r.ok){S.bookings=r.data.bookings||[];S.blocked=r.data.blocked||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
  else $("lastSync").textContent=r.error;
  renderBookings();
 }
@@ -597,13 +653,27 @@ async function unlock(p){
  if(r.status===401||r.status===429||r.status===503){PIN="";$("pinMsg").textContent=r.error;return}
  try{sessionStorage.setItem("glow-pin",p)}catch(e){}
  $("gate").hidden=true;$("hq").hidden=false;
- if(r.ok){S.bookings=r.data.bookings||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+ if(r.ok){S.bookings=r.data.bookings||[];S.blocked=r.data.blocked||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
  else $("lastSync").textContent=r.error;
  renderBookings();
 }
 $("pinGo").onclick=()=>unlock($("pin").value);
 $("pin").addEventListener("keydown",e=>{if(e.key==="Enter")unlock($("pin").value)});
 $("refreshBk").onclick=loadBookings;
+$("exportBk").onclick=downloadCSV;
+$("schPrint").onclick=()=>window.print();
+$("schDate").addEventListener("change",()=>{schTouched=true;renderSchedule()});
+$("blkAdd").onclick=async()=>{
+ const d=$("blkDate").value,msg=$("blkMsg");msg.textContent="";
+ if(!d){msg.textContent="Choose the date you are closed.";return}
+ if(S.blocked.includes(d)){msg.textContent="That day is already blocked.";return}
+ const n=S.bookings.filter(b=>b.date===d&&b.status!=="Cancelled").length;
+ if(n&&!confirm(n+" active booking"+(n===1?"":"s")+" already on this day. Blocking only stops new bookings; existing ones stay. Block anyway?"))return;
+ const r=await api("PUT",{date:d,blocked:true});
+ if(!r.ok){msg.textContent=r.error;return}
+ $("blkDate").value="";await loadBookings();
+};
+$("blkList").onclick=async e=>{const d=e.target.dataset.ub;if(!d)return;const r=await api("PUT",{date:d,blocked:false});if(!r.ok){alert(r.error);return}await loadBookings()};
 setInterval(()=>{if(!$("hq").hidden&&PIN)loadBookings()},60000);
 if(PIN)unlock(PIN);
 </script>
