@@ -410,7 +410,7 @@ function renderSite(){
  $("pubDays").textContent=dl>0?dl+" days left to book":"Offer closed";
  $("footWa").textContent=waOK()?"WhatsApp: "+S.wa:"Message us on WhatsApp to book";
  $("postSvc").innerHTML=S.services.slice(0,4).map(x=>`<li>${esc(x.n)} – ${le(x.p)}</li>`).join("");
- $("postWa").textContent=waOK()?"WhatsApp: +"+digits():"";
+ $("postWa").textContent=$("footWa").textContent; // same number as the footer
 }
 renderSite();
 
