@@ -337,6 +337,17 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
   <ul class="terms"><li>Appointment must be in December 2026</li><li>Booking must be made before 30 November</li><li>Booked through WhatsApp</li></ul>
 </div></section>
 
+<section id="festive" class="pub"><div class="wrap">
+  <div class="post" style="max-width:560px;margin:0 auto">
+    <h3>Glow for the Festive Season</h3>
+    <div class="big">15% off</div>
+    <div>Book any December appointment before 30 November.</div>
+    <ul id="postSvc"></ul>
+    <a class="btn" href="#book">Book now</a>
+    <p style="margin:12px 0 0;color:#e9d3df" id="postWa"></p>
+  </div>
+</div></section>
+
 <section id="gallery" class="pub"><div class="wrap">
   <h2>Gallery</h2><p class="sub">A look at the styles our clients book most.</p>
   <div class="gal" id="galGrid"><figure><img src="images/gallery-1.jpg" alt="Bridal glam" loading="lazy"><figcaption>Bridal glam</figcaption></figure><figure><img src="images/gallery-2.jpg" alt="Gele and styling" loading="lazy"><figcaption>Gele and styling</figcaption></figure><figure><img src="images/gallery-3.jpg" alt="Party makeup" loading="lazy"><figcaption>Party makeup</figcaption></figure><figure><img src="images/gallery-4.jpg" alt="Gel nails" loading="lazy"><figcaption>Gel nails</figcaption></figure><figure><img src="images/gallery-5.jpg" alt="Graduation look" loading="lazy"><figcaption>Graduation look</figcaption></figure><figure><img src="images/gallery-6.jpg" alt="December party" loading="lazy"><figcaption>December party</figcaption></figure></div>
@@ -398,6 +409,8 @@ function renderSite(){
  const dl=Math.ceil((new Date("2026-11-30")-new Date(todayISO))/864e5);
  $("pubDays").textContent=dl>0?dl+" days left to book":"Offer closed";
  $("footWa").textContent=waOK()?"WhatsApp: "+S.wa:"Message us on WhatsApp to book";
+ $("postSvc").innerHTML=S.services.slice(0,4).map(x=>`<li>${esc(x.n)} – ${le(x.p)}</li>`).join("");
+ $("postWa").textContent=waOK()?"WhatsApp: +"+digits():"";
 }
 renderSite();
 
