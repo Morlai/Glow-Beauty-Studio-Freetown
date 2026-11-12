@@ -20,6 +20,27 @@ window.GLOW={
     {d:"Saturday",t:"9:00 am to 5:00 pm"},
     {d:"Sunday",t:"Closed"}
   ],
+  // Appointment times customers can pick, by weekday (0 = Sunday ... 6 = Saturday).
+  // Each day lists the first and last appointment time. A day left out is shown as closed.
+  // SAMPLE TIMES: match them to your opening hours above.
+  slots:{
+    step:60, // minutes between appointments
+    days:{
+      1:["09:00","17:00"],
+      2:["09:00","17:00"],
+      3:["09:00","17:00"],
+      4:["09:00","17:00"],
+      5:["09:00","17:00"],
+      6:["09:00","16:00"]
+    }
+  },
+  // Social links shown in the footer. Paste the full link between the quotes.
+  // Empty ones are hidden. Example: instagram:"https://instagram.com/yourstudio"
+  social:{
+    instagram:"",
+    facebook:"",
+    tiktok:""
+  },
   services:[
     // Makeup
     {n:"Bridal makeup",p:600},
