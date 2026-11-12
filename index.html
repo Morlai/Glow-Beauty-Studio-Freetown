@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Glow Beauty Studio – Festive Makeup, Hair and Nails in Freetown</title>
 <style>
 :root{--plum:#3b1a2e;--rose:#c94f6d;--gold:#b8801f;--gold-bg:#f6e6c4;--bg:#faf5f8;--card:#fff;--ink:#2a1623;--mute:#7a6573;--line:#e8dce3;--ok:#2f7a4f;--warn:#b3541e;--r:10px}
@@ -167,9 +167,7 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
  .slide{padding:40px 18px 64px;min-height:clamp(420px,calc(100svh - var(--hh) - 40px),680px)}
  .slide img.bg{object-position:72% center}
  .slide:after{background:rgba(25,8,20,.68)}
- .arr{display:block;width:38px;height:38px;font-size:22px;line-height:1;padding:0;background:rgba(25,8,20,.55);z-index:5}
- .prev{left:6px}.next{right:6px}
- .slide>.sl-in{padding:0 52px}
+ .arr{display:none}
  .slide .btn.big{padding:11px 18px;font-size:16px}
  .eyebrow{font-size:14px}
 }
@@ -305,30 +303,6 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
 .okmsg:empty,.sumline:empty,#bkErr:empty{display:none}
 #sendBk{margin-top:6px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
-
-/* === FIT ANY SCREEN (phones, tablets, desktop) === */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;max-width:100%}
-body{overflow-x:hidden;max-width:100%;min-width:320px}
-img,svg,video{max-width:100%}
-.wrap{max-width:1200px;width:100%}
-h1,h2,h3,p,li,b,span{overflow-wrap:break-word}
-.brand{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:760px){
- /* 16px stops iPhones from zooming in when a field is tapped */
- input,select,textarea{font-size:16px}
- .pub{padding:40px 16px}
- .btn.sm{padding:7px 12px}
-}
-@media(max-width:480px){
- .bar2{gap:10px;padding:10px 14px}
- .brand{font-size:17px}
- .slide>.sl-in{padding:0 48px}
- .eyebrow{font-size:13px}
- .foot{padding:28px 16px 16px}
-}
-@media(max-width:340px){
- #topBook{display:none}
-}
 </style>
 </head>
 <body>
@@ -449,7 +423,7 @@ $("sendBk").onclick=async()=>{
   const j=await r.json().catch(()=>({}));
   if(r.ok){
    ok.textContent=`Thank you, ${n}! Your booking for ${sv.n} on ${d} at ${t} has been received. We will confirm it on WhatsApp.`;
-   $("cName").value=$("cPhone").value=$("cTime").value="";
+   $("cName").value=$("cPhone").value="";timeTouched=false;fillTime();
   }else if([400,409,429].includes(r.status)){err.textContent=j.error||"Please check your details and try again."}
   else throw new Error("unavailable");
  }catch(e){
@@ -460,68 +434,26 @@ $("sendBk").onclick=async()=>{
   }else err.textContent="Online booking is not available right now. Please try again soon.";
  }finally{btn.disabled=false;btn.textContent="Add booking"}
 };
+// Time box starts with the visitor's current time (they can change it)
+let timeTouched=false;
+const nowHM=()=>{const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+const fillTime=()=>{if(!timeTouched)$("cTime").value=nowHM()};
+$("cTime").addEventListener("input",()=>{timeTouched=true});
+["cName","cPhone"].forEach(id=>$(id).addEventListener("focus",fillTime));
+fillTime();
 updSum();
 
-// Carousel (seamless infinite loop)
-(function(){
- const tr=$("track"),dots=[...$("dots").children],N=3;
- // clone the first slide at the end so the last -> first move keeps sliding forward
- const clone=tr.children[0].cloneNode(true);
- clone.setAttribute("aria-hidden","true");
- clone.querySelectorAll("a,button").forEach(e=>e.tabIndex=-1);
- tr.appendChild(clone);
-
- let i=0,t,busy=false,fb;
- const setDots=()=>dots.forEach((d,k)=>d.setAttribute("aria-current",k===i%N));
- const move=(n,anim)=>{
-  tr.style.transition=(anim&&!calm)?"":"none";
-  tr.style.transform=`translateX(-${n*100}%)`;
-  i=n;setDots();
- };
- // after reaching the clone, silently jump back to the real first slide
- const settle=()=>{
-  clearTimeout(fb);
-  if(i===N){move(0,false);tr.offsetWidth;}   // offsetWidth forces reflow
-  busy=false;
- };
- tr.addEventListener("transitionend",e=>{if(e.target===tr&&e.propertyName==="transform")settle()});
- const run=fn=>{if(busy)return;busy=true;fn();fb=setTimeout(settle,750)}; // fallback if transitionend doesn't fire
-
- const next=()=>run(()=>move(i+1,true));
- const prev=()=>run(()=>{
-  if(i===0){move(N,false);tr.offsetWidth;}   // jump to the clone, then slide back
-  move(i-1,true);
- });
- const goTo=k=>run(()=>move(k,true));
-
- // autoplay always runs; with reduced-motion the slides change without the slide animation
- const calm=matchMedia("(prefers-reduced-motion:reduce)").matches;
- const play=()=>{clearInterval(t);t=setInterval(next,5500)};
- dots.forEach((d,k)=>d.onclick=()=>{goTo(k);play()});
- $("prev").onclick=()=>{prev();play()};
- $("next").onclick=()=>{next();play()};
-
- const h=$("home");
- // pause only for a real mouse or keyboard focus (touch screens fake hover and would freeze the slider)
- h.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")clearInterval(t)});
- h.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")play()});
- h.addEventListener("focusin",e=>{if(e.target.matches(":focus-visible"))clearInterval(t)});
- h.addEventListener("focusout",play);
-
- // swipe on phones
+// Carousel
+(function(){const tr=$("track"),dots=[...$("dots").children];let i=0,t;
+ const go=n=>{i=(n+3)%3;tr.style.transform=`translateX(-${i*100}%)`;dots.forEach((d,k)=>d.setAttribute("aria-current",k===i));};
+ const play=()=>{clearInterval(t);if(!matchMedia("(prefers-reduced-motion:reduce)").matches)t=setInterval(()=>go(i+1),5500)};
+ dots.forEach((d,k)=>d.onclick=()=>{go(k);play()});
+ $("prev").onclick=()=>{go(i-1);play()};$("next").onclick=()=>{go(i+1);play()};
+ const h=$("home");h.onmouseenter=()=>clearInterval(t);h.onmouseleave=play;h.onfocusin=()=>clearInterval(t);h.onfocusout=play;
  let x0=null;const c=document.querySelector(".car");
  c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
- c.addEventListener("touchend",e=>{
-  if(x0===null)return;
-  const dx=e.changedTouches[0].clientX-x0;x0=null;
-  if(Math.abs(dx)>40){dx<0?next():prev();play()}
- });
-
- // pause while the tab is hidden, resume when visible
- document.addEventListener("visibilitychange",()=>{document.hidden?clearInterval(t):play()});
-
- move(0,false);play();
-})();
+ c.addEventListener("touchend",e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40){go(i+(dx<0?1:-1));play()}});
+ go(0);play();})();
 
 // Header nav: mobile menu and active link
 (function(){const L=$("links"),B=$("menuBtn");
