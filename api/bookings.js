@@ -34,6 +34,14 @@ module.exports = async (req, res) => {
   const isAdmin = !!PIN && same(req.headers["x-admin-pin"], PIN);
 
   try {
+    // Public: which times are already booked on a date (no personal details)
+    if (req.method === "GET" && req.query && req.query.date) {
+      const d = clean(req.query.date, 10);
+      if (!isDate(d)) return res.status(400).json({ error: "Bad date." });
+      const keys = (await redis("KEYS", "slot:" + d + "|*")) || [];
+      return res.status(200).json({ taken: keys.map((k) => String(k).split("|")[1]).filter(Boolean) });
+    }
+
     // Admin-only methods: block repeated wrong PINs
     if (req.method !== "POST" && !isAdmin) {
       if (!PIN) return res.status(503).json({ error: "ADMIN_PIN is not set on the server. Add it in Vercel (Settings, Environment Variables) and redeploy." });
