@@ -44,7 +44,7 @@ window.GLOW={
   services:[
     // Makeup
     {n:"Bridal makeup",p:600},
-    {n:"Bridal trial makeup",p:300,img:"images/Bridal makeup.jpg"},
+    {n:"Bridal trial makeup",p:300,img:"images/Bridal makeup.pg"},
     {n:"Bridesmaid makeup",p:250,img:"images/Party glam makeup.jpg"},
     {n:"Graduation makeup",p:250,img:"images/Party glam makeup.jpg"},
     {n:"Party glam makeup",p:300},
