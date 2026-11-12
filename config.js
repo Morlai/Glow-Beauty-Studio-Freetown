@@ -44,11 +44,11 @@ window.GLOW={
   services:[
     // Makeup
     {n:"Bridal makeup",p:600},
-    {n:"Bridal trial makeup",p:300,img:"images/Bridal makeup.pg"},
-    {n:"Bridesmaid makeup",p:250,img:"images/Party glam makeup.pg"},
-    {n:"Graduation makeup",p:250,img:"images/Party glam makeup.pg"},
+    {n:"Bridal trial makeup",p:300,img:"images/Bridal trial makeup.jpg"},
+    {n:"Bridesmaid makeup",p:250,img:"images/Bridesmaid makeup.jpg"},
+    {n:"Graduation makeup",p:250,img:"images/Graduation makeup.jpg"},
     {n:"Party glam makeup",p:300},
-    {n:"Lash extensions",p:150,img:"images/Party glam makeup.pg"},
+    {n:"Lash extensions",p:150,img:"images/Lash extensions.jpg"},
     // Hair
     {n:"Gele and hairstyling",p:250},
     {n:"Braids and hair styling",p:200,img:"images/Gele and hairstyling.pg"},
