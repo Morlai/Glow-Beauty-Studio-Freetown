@@ -404,7 +404,7 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
   <div class="card"><h2>December diary</h2>
     <p style="margin:-4px 0 12px;color:var(--mute);font-size:13px"><button class="btn ghost sm" id="refreshBk" type="button">Refresh</button> <span id="lastSync"></span></p>
     <div class="filters" id="filters"></div>
-    <div class="scroll"><table><thead><tr><th>Date and time</th><th>Client</th><th>Service</th><th>Price (Le)</th><th>Offer</th><th>Status</th><th></th></tr></thead><tbody id="bkBody"></tbody></table></div>
+    <div class="scroll"><table><thead><tr><th>Date and time</th><th>Client</th><th>Service</th><th>Price (Le)</th><th>Offer</th><th>Status</th><th>WhatsApp</th><th></th></tr></thead><tbody id="bkBody"></tbody></table></div>
   </div>
 </section>
 
@@ -507,6 +507,22 @@ $("fillBk").onclick=()=>{
  $("bDate").value=g("Date");$("bTime").value=g("Time");
  $("bkMsg").textContent=$("bName").value?"Check the details, then click Add booking.":"Could not read that message. Fill the form by hand.";
 };
+// WhatsApp replies for the December diary, based on each booking's status
+const CC="232"; // Sierra Leone country code, added to local numbers
+function waNum(p){let d=String(p||"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);else if(d.startsWith("0"))d=CC+d.replace(/^0+/,"");else if(d.length<=8)d=CC+d;return d.length>=8?d:""}
+const WA_MSG={
+ "Pending":b=>`Hello ${b.name}, thank you for your booking request at Glow Beauty Studio: ${b.svc} on ${b.date} at ${b.time}. We are checking our diary and will confirm with you shortly.`,
+ "Confirmed":b=>`Hello ${b.name}, your appointment at Glow Beauty Studio is confirmed: ${b.svc} on ${b.date} at ${b.time}. Price: ${le(priceOf(b))}${eligible(b)?" (15% December offer applied)":""}. We look forward to seeing you!`,
+ "Reminder sent":b=>`Hello ${b.name}, a friendly reminder of your appointment at Glow Beauty Studio: ${b.svc} on ${b.date} at ${b.time}. Please reply to confirm you can make it.`,
+ "Completed":b=>`Hello ${b.name}, thank you for visiting Glow Beauty Studio! We hope you loved your ${b.svc}. We would love to see you again.`,
+ "Cancelled":b=>`Hello ${b.name}, your Glow Beauty Studio booking for ${b.svc} on ${b.date} at ${b.time} has been cancelled. Would you like to choose another date or time?`
+};
+const WA_LBL={"Pending":"Reply to request","Confirmed":"Send confirmation","Reminder sent":"Send reminder","Completed":"Say thank you","Cancelled":"Follow up"};
+function waCell(b){
+ const n=waNum(b.phone);if(!n)return'<small style="color:var(--mute)">No number</small>';
+ const t=(WA_MSG[b.status]||WA_MSG.Pending)(b);
+ return`<a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/${n}?text=${encodeURIComponent(t)}">WhatsApp</a><br><small style="color:var(--mute)">${WA_LBL[b.status]||""}</small>`;
+}
 function renderBookings(){
  const B=S.bookings,act=B.filter(b=>b.status!=="Cancelled");
  const rev=act.reduce((a,b)=>a+priceOf(b),0),days=new Set(act.map(b=>b.date)).size;
@@ -514,7 +530,7 @@ function renderBookings(){
  $("stats").innerHTML=[[act.length,"Active bookings"],[pend,"Awaiting confirmation"],[days+" / 31","December days with bookings"],[le(rev),"Expected income after offer"]].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join("");
  $("filters").innerHTML=["All",...STAT].map(f=>`<button class="btn sm ${f===filter?"":"ghost"}" data-f="${f}">${f}</button>`).join("");
  const rows=B.filter(b=>filter==="All"||b.status===filter).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
- $("bkBody").innerHTML=rows.map(b=>`<tr><td>${b.date}<br><small>${b.time}</small></td><td>${esc(b.name)}<br><small>${esc(b.occ)}${b.phone?" · "+esc(b.phone):""}</small></td><td>${esc(b.svc)}</td><td>${le(priceOf(b))}${eligible(b)?`<br><small><s>${le(b.price)}</s></small>`:""}</td><td>${eligible(b)?'<span class="tag">15% off</span>':'<span class="tag none">Full price</span>'}</td><td><select data-st="${b.id}" aria-label="Status for ${esc(b.name)}">${STAT.map(s=>`<option${s===b.status?" selected":""}>${s}</option>`).join("")}</select></td><td><button class="x" data-rb="${b.id}" aria-label="Delete booking">×</button></td></tr>`).join("")||`<tr><td colspan="7" class="empty">No bookings here yet. Add the first one above.</td></tr>`;
+ $("bkBody").innerHTML=rows.map(b=>`<tr><td>${b.date}<br><small>${b.time}</small></td><td>${esc(b.name)}<br><small>${esc(b.occ)}${b.phone?" · "+esc(b.phone):""}</small></td><td>${esc(b.svc)}</td><td>${le(priceOf(b))}${eligible(b)?`<br><small><s>${le(b.price)}</s></small>`:""}</td><td>${eligible(b)?'<span class="tag">15% off</span>':'<span class="tag none">Full price</span>'}</td><td><select data-st="${b.id}" aria-label="Status for ${esc(b.name)}">${STAT.map(s=>`<option${s===b.status?" selected":""}>${s}</option>`).join("")}</select></td><td>${waCell(b)}</td><td><button class="x" data-rb="${b.id}" aria-label="Delete booking">×</button></td></tr>`).join("")||`<tr><td colspan="8" class="empty">No bookings here yet. Add the first one above.</td></tr>`;
 }
 $("filters").onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;renderBookings()}};
 $("bkBody").onchange=async e=>{const id=e.target.dataset.st;if(!id)return;const r=await api("PATCH",{id,status:e.target.value});if(!r.ok)alert(r.error);await loadBookings()};
