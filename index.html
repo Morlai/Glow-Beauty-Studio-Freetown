@@ -312,6 +312,10 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
 .hours dt{font-weight:600}.hours dd{margin:0;color:var(--mute)}
 .mapbox{min-height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--line)}
 .mapbox iframe{width:100%;height:100%;min-height:340px;border:0;display:block}
+.social{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.social a{display:inline-flex;align-items:center;gap:8px;border:1px solid #5a2f48;border-radius:99px;padding:6px 14px;color:#f1cf86;text-decoration:none;font-weight:600;font-size:14px}
+.social a:hover{background:#5a2f48;text-decoration:none}
+.social svg{width:18px;height:18px;flex:none}
 </style>
 </head>
 <body>
@@ -382,7 +386,7 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
       <div><label for="cSvc">Service</label><select id="cSvc"></select></div>
       <div><label for="cOcc">Occasion</label><select id="cOcc"><option>Wedding</option><option>Graduation</option><option>December party</option><option>Other</option></select></div>
       <div><label for="cDate">Appointment date</label><input id="cDate" type="date" min="2026-12-01" max="2026-12-31"></div>
-      <div><label for="cTime">Time</label><input id="cTime" type="time"></div>
+      <div><label for="cTime">Time</label><select id="cTime"><option value="">Choose a date first</option></select></div>
     </div>
     <div class="hp" aria-hidden="true"><label for="cWeb">Leave this empty</label><input id="cWeb" tabindex="-1" autocomplete="off"></div>
     <p id="bkSum" class="sumline" aria-live="polite"></p>
@@ -407,7 +411,7 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
 </div></section>
 
 <footer class="foot"><div class="wrap foot-in">
-  <div><b class="fb">Glow Beauty Studio, Freetown</b><p>Makeup, hair and nails for weddings, graduations and December parties.</p><p id="footAddr"></p><p id="footWa">Message us on WhatsApp to book</p></div>
+  <div><b class="fb">Glow Beauty Studio, Freetown</b><p>Makeup, hair and nails for weddings, graduations and December parties.</p><p id="footAddr"></p><p id="footWa">Message us on WhatsApp to book</p><div class="social" id="social"></div></div>
   <div class="fl"><a href="#home">Home</a><a href="#about">About us</a><a href="#services">Services</a><a href="#offer">Offer</a><a href="#gallery">Gallery</a><a href="#location">Find us</a></div>
   <p class="copy">© <span id="yr">2026</span> Glow Beauty Studio, Freetown. All rights reserved.</p>
 </div></footer>
@@ -458,7 +462,7 @@ $("sendBk").onclick=async()=>{
   const j=await r.json().catch(()=>({}));
   if(r.ok){
    ok.textContent=`Thank you, ${n}! Your booking for ${sv.n} on ${d} at ${t} has been received. We will confirm it on WhatsApp.`;
-   $("cName").value=$("cPhone").value="";timeTouched=false;fillTime();
+   $("cName").value=$("cPhone").value="";loadSlots();
   }else if([400,409,429].includes(r.status)){err.textContent=j.error||"Please check your details and try again."}
   else throw new Error("unavailable");
  }catch(e){
@@ -469,13 +473,29 @@ $("sendBk").onclick=async()=>{
   }else err.textContent="Online booking is not available right now. Please try again soon.";
  }finally{btn.disabled=false;btn.textContent="Add booking"}
 };
-// Time box starts with the visitor's current time (they can change it)
-let timeTouched=false;
-const nowHM=()=>{const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
-const fillTime=()=>{if(!timeTouched)$("cTime").value=nowHM()};
-$("cTime").addEventListener("input",()=>{timeTouched=true});
-["cName","cPhone"].forEach(id=>$(id).addEventListener("focus",fillTime));
-fillTime();
+// Time slots from config.js; times already booked come from the server
+const SL=G.slots||{step:60,days:{1:["09:00","17:00"],2:["09:00","17:00"],3:["09:00","17:00"],4:["09:00","17:00"],5:["09:00","17:00"],6:["09:00","16:00"]}};
+const mins=t=>{const [h,m]=t.split(":").map(Number);return h*60+m};
+const hhmm=n=>String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0");
+const lbl=t=>{const [h,m]=t.split(":").map(Number);return (h%12||12)+":"+String(m).padStart(2,"0")+" "+(h<12?"am":"pm")};
+function slotList(d){const r=(SL.days||{})[new Date(d+"T12:00:00").getDay()];if(!r)return[];const out=[],st=SL.step||60;for(let m=mins(r[0]);m<=mins(r[1]);m+=st)out.push(hhmm(m));return out}
+let slotSeq=0;
+async function loadSlots(){
+ const sel=$("cTime"),d=$("cDate").value,seq=++slotSeq;
+ if(!d){sel.innerHTML='<option value="">Choose a date first</option>';return}
+ const all=slotList(d);
+ if(!all.length){sel.innerHTML='<option value="">Closed on this day. Choose another date</option>';return}
+ let taken=[];
+ try{const r=await fetch(API+"?date="+d);if(r.ok)taken=(await r.json()).taken||[]}catch(e){}
+ if(seq!==slotSeq)return;
+ const free=all.filter(t=>!taken.includes(t));
+ const now=new Date(),cur=now.getHours()*60+now.getMinutes();
+ const best=free.slice().sort((a,b)=>Math.abs(mins(a)-cur)-Math.abs(mins(b)-cur))[0];
+ sel.innerHTML=all.map(t=>`<option value="${t}"${taken.includes(t)?" disabled":""}${t===best?" selected":""}>${lbl(t)}${taken.includes(t)?" (booked)":""}</option>`).join("");
+ if(!free.length)sel.insertAdjacentHTML("afterbegin",'<option value="" selected>Fully booked. Choose another date</option>');
+}
+$("cDate").addEventListener("change",loadSlots);
+loadSlots();
 updSum();
 
 // Location and opening hours (from config.js)
@@ -486,6 +506,20 @@ updSum();
  $("locMap").src="https://www.google.com/maps?q="+q+"&output=embed";
  const H=Array.isArray(G.hours)?G.hours:[];
  $("locHours").innerHTML=H.length?`<dl class="hours">${H.map(h=>`<div><dt>${esc(h.d)}</dt><dd>${esc(h.t)}</dd></div>`).join("")}</dl>`:`<p style="margin:0;color:var(--mute)">Open by appointment. Book online or message us on WhatsApp to choose your time.</p>`;
+})();
+
+// Social links in the footer (from config.js)
+(function(){
+ const IC={
+  WhatsApp:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.7-2-1-1 .9c-1-.4-1.9-1.3-2.3-2.3l.9-1-1-2z" fill="currentColor"/></svg>',
+  Instagram:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg>',
+  Facebook:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H8v3h2.5V21h3z"/></svg>',
+  TikTok:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 3c.3 2.2 1.6 3.6 3.7 3.8v3c-1.3.1-2.5-.3-3.7-1.1v5.6c0 3.5-2.4 5.7-5.4 5.7-3 0-5.2-2.3-5.2-5.2 0-3.2 2.6-5.5 5.9-5.1v3.1c-1.6-.4-2.8.6-2.8 2 0 1.2.9 2.2 2.1 2.2 1.3 0 2.2-.9 2.2-2.4V3h3.2z"/></svg>'
+ };
+ const SO=G.social||{},items=[];
+ if(waOK())items.push(["WhatsApp",`https://wa.me/${digits()}`]);
+ [["instagram","Instagram"],["facebook","Facebook"],["tiktok","TikTok"]].forEach(([k,n])=>{if(/^https?:\/\//i.test(SO[k]||""))items.push([n,SO[k]])});
+ $("social").innerHTML=items.map(([n,u])=>`<a href="${esc(u)}" target="_blank" rel="noopener" aria-label="${n}">${IC[n]}${n}</a>`).join("");
 })();
 
 // Carousel
