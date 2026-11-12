@@ -576,7 +576,7 @@ async function loadBookings(){
 }
 async function unlock(p){
  PIN=p;const r=await api("GET");
- if(r.status===401||r.status===429){PIN="";$("pinMsg").textContent=r.error;return}
+ if(r.status===401||r.status===429||r.status===503){PIN="";$("pinMsg").textContent=r.error;return}
  try{sessionStorage.setItem("glow-pin",p)}catch(e){}
  $("gate").hidden=true;$("hq").hidden=false;
  if(r.ok){S.bookings=r.data.bookings||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
