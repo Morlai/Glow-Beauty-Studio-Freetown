@@ -45,16 +45,16 @@ window.GLOW={
     // Makeup
     {n:"Bridal makeup",p:600},
     {n:"Bridal trial makeup",p:300,img:"images/Bridal makeup.pg"},
-    {n:"Bridesmaid makeup",p:250,img:"images/Party glam makeup.jpg"},
-    {n:"Graduation makeup",p:250,img:"images/Party glam makeup.jpg"},
+    {n:"Bridesmaid makeup",p:250,img:"images/Party glam makeup.pg"},
+    {n:"Graduation makeup",p:250,img:"images/Party glam makeup.pg"},
     {n:"Party glam makeup",p:300},
-    {n:"Lash extensions",p:150,img:"images/Party glam makeup.jpg"},
+    {n:"Lash extensions",p:150,img:"images/Party glam makeup.pg"},
     // Hair
     {n:"Gele and hairstyling",p:250},
-    {n:"Braids and hair styling",p:200,img:"images/Gele and hairstyling.jpg"},
-    {n:"Wig installation and styling",p:150,img:"images/Gele and hairstyling.jpg"},
+    {n:"Braids and hair styling",p:200,img:"images/Gele and hairstyling.pg"},
+    {n:"Wig installation and styling",p:150,img:"images/Gele and hairstyling.pg"},
     // Nails
     {n:"Gel manicure and pedicure",p:200},
-    {n:"Gel nails (hands only)",p:120,img:"images/Gel manicure and pedicure.jpg"}
+    {n:"Gel nails (hands only)",p:120,img:"images/Gel manicure and pedicure.pg"}
   ]
 };
