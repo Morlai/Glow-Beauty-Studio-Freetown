@@ -39,7 +39,8 @@ module.exports = async (req, res) => {
       const d = clean(req.query.date, 10);
       if (!isDate(d)) return res.status(400).json({ error: "Bad date." });
       const keys = (await redis("KEYS", "slot:" + d + "|*")) || [];
-      return res.status(200).json({ taken: keys.map((k) => String(k).split("|")[1]).filter(Boolean) });
+      const closed = (await redis("SISMEMBER", "blocked", d)) === 1;
+      return res.status(200).json({ taken: keys.map((k) => String(k).split("|")[1]).filter(Boolean), closed });
     }
 
     // Admin-only methods: block repeated wrong PINs
@@ -56,7 +57,17 @@ module.exports = async (req, res) => {
       const flat = await redis("HGETALL", "bookings");
       const vals = Array.isArray(flat) ? flat.filter((_, i) => i % 2 === 1) : Object.values(flat || {});
       const bookings = vals.map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
-      return res.status(200).json({ bookings });
+      const blocked = ((await redis("SMEMBERS", "blocked")) || []).sort();
+      return res.status(200).json({ bookings, blocked });
+    }
+
+    if (req.method === "PUT") {
+      let b = req.body;
+      if (typeof b === "string") { try { b = JSON.parse(b); } catch (e) { b = {}; } }
+      const d = clean(b && b.date, 10);
+      if (!isDate(d)) return res.status(400).json({ error: "Bad date." });
+      await redis(b.blocked ? "SADD" : "SREM", "blocked", d);
+      return res.status(200).json({ ok: true });
     }
 
     if (req.method === "POST") {
@@ -78,6 +89,8 @@ module.exports = async (req, res) => {
         if (n === 1) await redis("EXPIRE", k, 3600);
         if (n > 8) return res.status(429).json({ error: "Too many requests. Please try again later." });
       }
+      if (!isAdmin && (await redis("SISMEMBER", "blocked", date)) === 1)
+        return res.status(409).json({ error: "Sorry, we are closed on that day. Please choose another date." });
       const today = new Date().toISOString().slice(0, 10);
       const made = isAdmin && isDate(clean(b.made, 10)) ? clean(b.made, 10) : today;
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -120,7 +133,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true });
     }
 
-    res.setHeader("Allow", "GET, POST, PATCH, DELETE");
+    res.setHeader("Allow", "GET, POST, PUT, PATCH, DELETE");
     return res.status(405).json({ error: "Method not allowed." });
   } catch (e) {
     return res.status(500).json({ error: "Server error. Please try again." });
