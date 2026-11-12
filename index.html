@@ -303,12 +303,21 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
 .okmsg:empty,.sumline:empty,#bkErr:empty{display:none}
 #sendBk{margin-top:6px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.loc-grid{display:grid;gap:24px;grid-template-columns:1fr 1.2fr;align-items:stretch}
+@media(max-width:800px){.loc-grid{grid-template-columns:1fr}}
+.lh{font:700 14px "Avenir Next","Segoe UI",sans-serif;color:var(--rose);margin:0 0 6px}
+.laddr{font:700 20px/1.3 Georgia,serif;margin:0 0 12px}
+.hours{margin:0;display:grid;gap:6px}
+.hours div{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.hours dt{font-weight:600}.hours dd{margin:0;color:var(--mute)}
+.mapbox{min-height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--line)}
+.mapbox iframe{width:100%;height:100%;min-height:340px;border:0;display:block}
 </style>
 </head>
 <body>
 <header class="site"><div class="wrap bar2">
   <a class="brand" href="#home">Glow Beauty Studio</a>
-  <div class="links" id="links"><a href="#home">Home</a><a href="#about">About us</a><a href="#services">Services</a><a href="#offer">Offer</a><a href="#gallery">Gallery</a></div>
+  <div class="links" id="links"><a href="#home">Home</a><a href="#about">About us</a><a href="#services">Services</a><a href="#offer">Offer</a><a href="#gallery">Gallery</a><a href="#location">Find us</a></div>
   <button class="menu" id="menuBtn" aria-expanded="false" aria-controls="links" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path id="menuIcon" d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button>
   <a class="bk btn sm" id="topBook" href="#book">Book now</a>
 </div></header>
@@ -384,9 +393,22 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
   </div>
 </div></section>
 
+<section id="location" class="pub"><div class="wrap">
+  <h2>Find us</h2>
+  <p class="sub">Visit the studio in Freetown. Book first so your slot is ready when you arrive.</p>
+  <div class="loc-grid">
+    <div>
+      <div class="card"><h3 class="lh">Address</h3><p class="laddr" id="locAddr"></p><a class="btn sm" id="locDir" target="_blank" rel="noopener" href="#location">Get directions</a></div>
+      <div class="card"><h3 class="lh">Opening hours</h3><div id="locHours"></div></div>
+      <a class="btn big" href="#book">Book now</a>
+    </div>
+    <div class="mapbox"><iframe id="locMap" title="Map showing Glow Beauty Studio, Freetown" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>
+  </div>
+</div></section>
+
 <footer class="foot"><div class="wrap foot-in">
-  <div><b class="fb">Glow Beauty Studio, Freetown</b><p>Makeup, hair and nails for weddings, graduations and December parties.</p><p id="footWa">Message us on WhatsApp to book</p></div>
-  <div class="fl"><a href="#home">Home</a><a href="#about">About us</a><a href="#services">Services</a><a href="#offer">Offer</a><a href="#gallery">Gallery</a></div>
+  <div><b class="fb">Glow Beauty Studio, Freetown</b><p>Makeup, hair and nails for weddings, graduations and December parties.</p><p id="footAddr"></p><p id="footWa">Message us on WhatsApp to book</p></div>
+  <div class="fl"><a href="#home">Home</a><a href="#about">About us</a><a href="#services">Services</a><a href="#offer">Offer</a><a href="#gallery">Gallery</a><a href="#location">Find us</a></div>
   <p class="copy">© <span id="yr">2026</span> Glow Beauty Studio, Freetown. All rights reserved.</p>
 </div></footer>
 <button class="totop" id="toTop" aria-label="Scroll to top" hidden>↑</button>
@@ -456,6 +478,16 @@ $("cTime").addEventListener("input",()=>{timeTouched=true});
 fillTime();
 updSum();
 
+// Location and opening hours (from config.js)
+(function(){
+ const addr=G.address||"2 Fisher Street, Off Abach Street, Freetown",q=encodeURIComponent(addr+", Sierra Leone");
+ $("locAddr").textContent=addr;$("footAddr").textContent=addr;
+ $("locDir").href="https://www.google.com/maps/search/?api=1&query="+q;
+ $("locMap").src="https://www.google.com/maps?q="+q+"&output=embed";
+ const H=Array.isArray(G.hours)?G.hours:[];
+ $("locHours").innerHTML=H.length?`<dl class="hours">${H.map(h=>`<div><dt>${esc(h.d)}</dt><dd>${esc(h.t)}</dd></div>`).join("")}</dl>`:`<p style="margin:0;color:var(--mute)">Open by appointment. Book online or message us on WhatsApp to choose your time.</p>`;
+})();
+
 // Carousel
 (function(){const tr=$("track"),dots=[...$("dots").children];let i=0,t;
  const go=n=>{i=(n+3)%3;tr.style.transform=`translateX(-${i*100}%)`;dots.forEach((d,k)=>d.setAttribute("aria-current",k===i));};
@@ -473,7 +505,7 @@ updSum();
  const ic=o=>{B.setAttribute("aria-expanded",o);B.setAttribute("aria-label",o?"Close menu":"Menu");$("menuIcon").setAttribute("d",o?"M5 5l14 14M19 5L5 19":"M3 6h18M3 12h18M3 18h18")};
  B.onclick=()=>ic(L.classList.toggle("open"));
  L.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{L.classList.remove("open");ic(false)}));
- const ids=["home","about","services","offer","gallery"],links=[...L.querySelectorAll("a")];
+ const ids=["home","about","services","offer","gallery","location"],links=[...L.querySelectorAll("a")];
  const mark=()=>{let cur="home";ids.forEach(id=>{if($(id).getBoundingClientRect().top<=120)cur=id});links.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+cur))};
  addEventListener("scroll",mark,{passive:true});mark();})();
 
