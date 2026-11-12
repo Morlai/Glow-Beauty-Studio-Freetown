@@ -9,6 +9,8 @@
 window.GLOW={
   // WhatsApp number with country code, digits only
   wa:"23276391399",
+  // How the number is shown to visitors (footer and festive card)
+  waShow:"+232 76 391 399",
   services:[
     // Makeup
     {n:"Bridal makeup",p:600},
