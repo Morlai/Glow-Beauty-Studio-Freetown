@@ -37,9 +37,9 @@ window.GLOW={
   // Social links shown in the footer. Paste the full link between the quotes.
   // Empty ones are hidden. Example: instagram:"https://instagram.com/yourstudio"
   social:{
-    instagram:"",
-    facebook:"",
-    tiktok:""
+    instagram:"https://instagram.com/glowbeautystudio",
+    facebook:"https://facebook.com/glowbeautystudio",
+    tiktok:"https://www.tiktok.com/@glowbeautystudio"
   },
   services:[
     // Makeup
