@@ -1,8 +1,8 @@
 /* Glow Beauty Studio: customer-facing settings.
    Edit this file to change what visitors see on the website. */
 window.GLOW={
-  // WhatsApp number with country code, digits only. Example: "23276391399"
-  wa:"",
+  // WhatsApp number with country code, digits only. Example: "+23276391399"
+  wa:"23276391399",
   // Services shown on the website. Optional: add img:"images/your-photo.jpg" to a service.
   services:[
     {n:"Bridal makeup",p:600},
