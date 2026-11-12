@@ -30,7 +30,6 @@ th{color:var(--mute);font-weight:600;font-size:13px}
 .scroll{overflow-x:auto}
 label{display:block;font-size:13px;font-weight:600;color:var(--mute);margin-bottom:3px}
 input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
-input[type="file"]{padding:6px 10px; font-size: 14px;}
 input:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--rose);outline-offset:1px}
 .form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end}
 .btn{background:var(--rose);color:#fff;border:0;border-radius:8px;padding:10px 16px;font:700 15px inherit;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
@@ -366,7 +365,7 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
         <div class="form" style="margin-top:12px">
           <div><label for="svcName">Service</label><input id="svcName" placeholder="e.g. Gele and styling"></div>
           <div><label for="svcPrice">Price (Le)</label><input id="svcPrice" type="number" min="0"></div>
-          <div><label for="svcImg">Image file (optional)</label><input id="svcImg" type="file" accept="image/*"></div>
+          <div><label for="svcImg">Image file (optional)</label><input id="svcImg" placeholder="images/my-service.jpg"></div>
           <button class="btn" id="addSvc">Add service</button>
         </div>
       </div>
@@ -509,34 +508,7 @@ function renderCampaign(){
 $("wa").oninput=e=>{S.wa=e.target.value;save();renderCampaign()};
 $("wa").onblur=renderCampaign;
 $("dlTime").onchange=e=>{S.dlTime=e.target.value;save();renderCampaign()};
-
-$("addSvc").onclick=()=>{
-  const n=$("svcName").value.trim(), p=+$("svcPrice").value;
-  if(!n||!(p>0)) return;
-  const fileInput = $("svcImg");
-  const addService = (imgData) => {
-    S.services.push({n, p, img: imgData || ""});
-    $("svcName").value = "";
-    $("svcPrice").value = "";
-    fileInput.value = "";
-    save();
-    renderCampaign();
-    renderBookings();
-  };
-  
-  if (fileInput.files && fileInput.files[0]) {
-    if (fileInput.files[0].size > 1024 * 1024) {
-      alert("Image is too large. Please choose an image under 1MB to ensure it saves correctly in local storage.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => addService(e.target.result);
-    reader.readAsDataURL(fileInput.files[0]);
-  } else {
-    addService("");
-  }
-};
-
+$("addSvc").onclick=()=>{const n=$("svcName").value.trim(),p=+$("svcPrice").value;if(!n||!(p>0))return;S.services.push({n,p,img:$("svcImg").value.trim()});$("svcName").value=$("svcPrice").value=$("svcImg").value="";save();renderCampaign();renderBookings()};
 $("svcBody").onclick=e=>{const i=e.target.dataset.rs;if(i===undefined)return;S.services.splice(i,1);save();renderCampaign()};
 $("copyCap").onclick=async()=>{try{await navigator.clipboard.writeText($("cap").value);$("copied").textContent="Caption copied."}catch(e){$("cap").select();$("copied").textContent="Press Ctrl+C to copy."}};
 
