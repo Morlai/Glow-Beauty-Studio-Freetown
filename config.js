@@ -52,7 +52,7 @@ window.GLOW={
     // Hair
     {n:"Gele and hairstyling",p:250},
     {n:"Braids and hair styling",p:200,img:"images/Gele and hairstyling.pg"},
-    {n:"Wig installation and styling",p:150,img:"images/Gele and hairstyling.pg"},
+    {n:"Wig installation and styling",p:150,img:"images/Wig installation and styling.jpg"},
     // Nails
     {n:"Gel manicure and pedicure",p:200},
     {n:"Gel nails (hands only)",p:120,img:"images/Gel manicure and pedicure.pg"}
