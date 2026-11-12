@@ -4,6 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Glow Beauty Studio – Festive Makeup, Hair and Nails in Freetown</title>
+<meta name="description" content="Professional makeup, hair and nails in Freetown for weddings, graduations and December parties. Book online and get 15% off December appointments booked before 30 November.">
+<link rel="canonical" href="https://glow-beauty-studio-freetown.vercel.app/">
+<meta name="theme-color" content="#3b1a2e">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Glow Beauty Studio">
+<meta property="og:title" content="Glow Beauty Studio, Freetown: Glow for the Festive Season">
+<meta property="og:description" content="Makeup, hair and nails for weddings, graduations and December parties. Book online and get 15% off December appointments booked before 30 November.">
+<meta property="og:url" content="https://glow-beauty-studio-freetown.vercel.app/">
+<meta property="og:image" content="https://glow-beauty-studio-freetown.vercel.app/images/banner-1.jpg">
+<meta property="og:image:alt" content="Glow Beauty Studio: festive makeup, hair and nails in Freetown">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Glow Beauty Studio, Freetown: Glow for the Festive Season">
+<meta name="twitter:description" content="Makeup, hair and nails for weddings, graduations and December parties. 15% off December appointments.">
+<meta name="twitter:image" content="https://glow-beauty-studio-freetown.vercel.app/images/banner-1.jpg">
 <style>
 :root{--plum:#3b1a2e;--rose:#c94f6d;--gold:#b8801f;--gold-bg:#f6e6c4;--bg:#faf5f8;--card:#fff;--ink:#2a1623;--mute:#7a6573;--line:#e8dce3;--ok:#2f7a4f;--warn:#b3541e;--r:10px}
 @media(prefers-color-scheme:dark){:root{--bg:#1e1019;--card:#2b1824;--ink:#f6ecf1;--mute:#b79fae;--line:#4a2f40;--plum:#120911;--gold:#e8b85a;--gold-bg:#4a3612;--ok:#6ccb94;--warn:#f0985f}}
@@ -485,9 +499,10 @@ async function loadSlots(){
  if(!d){sel.innerHTML='<option value="">Choose a date first</option>';return}
  const all=slotList(d);
  if(!all.length){sel.innerHTML='<option value="">Closed on this day. Choose another date</option>';return}
- let taken=[];
- try{const r=await fetch(API+"?date="+d);if(r.ok)taken=(await r.json()).taken||[]}catch(e){}
+ let taken=[],closed=false;
+ try{const r=await fetch(API+"?date="+d);if(r.ok){const j=await r.json();taken=j.taken||[];closed=!!j.closed}}catch(e){}
  if(seq!==slotSeq)return;
+ if(closed){sel.innerHTML='<option value="">Closed on this day. Choose another date</option>';return}
  const free=all.filter(t=>!taken.includes(t));
  const now=new Date(),cur=now.getHours()*60+now.getMinutes();
  const best=free.slice().sort((a,b)=>Math.abs(mins(a)-cur)-Math.abs(mins(b)-cur))[0];
