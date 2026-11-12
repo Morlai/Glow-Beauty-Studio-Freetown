@@ -36,6 +36,7 @@ module.exports = async (req, res) => {
   try {
     // Admin-only methods: block repeated wrong PINs
     if (req.method !== "POST" && !isAdmin) {
+      if (!PIN) return res.status(503).json({ error: "ADMIN_PIN is not set on the server. Add it in Vercel (Settings, Environment Variables) and redeploy." });
       const k = "pin:" + ip;
       const n = await redis("INCR", k);
       if (n === 1) await redis("EXPIRE", k, 600);
