@@ -447,6 +447,7 @@ const defaults={wa:G.wa||"",dlTime:"",
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))||defaults}catch(e){S=defaults}
 if(!S.wa&&G.wa)S.wa=G.wa; // studio number from config.js
+if(G.services)S.services=G.services.map(x=>({...x})); // services always come from config.js
 S.bookings=[]; // bookings live on the server
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,bookings:[]}))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
