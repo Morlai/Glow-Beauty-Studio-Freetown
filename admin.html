@@ -368,6 +368,7 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
           <div><label for="svcImg">Image file (optional)</label><input id="svcImg" type="file" accept="image/*"></div>
           <button class="btn" id="addSvc" type="button">Add service</button>
         </div>
+        <div id="svcPrevBox" hidden style="margin-top:10px"><img id="svcPrev" alt="Preview of the chosen image" style="max-height:130px;max-width:100%;border-radius:8px;border:1px solid var(--line)"></div>
         <p class="warn" id="svcMsg" role="alert"></p>
       </div>
       <div class="card"><h2>Brief checklist</h2><ul class="check" id="reqList"></ul></div>
@@ -539,12 +540,20 @@ $("addSvc").onclick=async()=>{
   const image=f?await imageToDataURL(f):"";
   const r=await api("POST",{n,p,image},null,"/api/services");
   if(!r.ok){msg.textContent=r.error;return}
-  $("svcName").value=$("svcPrice").value=$("svcImg").value="";
+  $("svcName").value=$("svcPrice").value=$("svcImg").value="";$("svcPrevBox").hidden=true;
   await loadServices();
   msg.style.color="var(--ok)";msg.textContent="Service added. It is now on the website.";
  }catch(e){msg.textContent=e.message||"Could not add the service."}
  finally{btn.disabled=false}
 };
+$("svcImg").addEventListener("change",()=>{
+ const f=$("svcImg").files[0],box=$("svcPrevBox"),im=$("svcPrev");
+ if(im.dataset.u)URL.revokeObjectURL(im.dataset.u);
+ if(!f){box.hidden=true;return}
+ const u=URL.createObjectURL(f);im.dataset.u=u;
+ im.onload=()=>{box.hidden=false};im.onerror=()=>{box.hidden=true};
+ im.src=u;
+});
 $("svcBody").onclick=async e=>{
  const id=e.target.dataset.rs;if(!id)return;
  if(!confirm("Remove this service from the website?"))return;
