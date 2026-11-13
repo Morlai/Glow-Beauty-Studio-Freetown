@@ -690,7 +690,7 @@ async function api(method,body,id,path){
  try{
   const r=await fetch((path||"/api/bookings")+(id?"?id="+encodeURIComponent(id):""),{method,headers:{"Content-Type":"application/json","x-admin-pin":PIN},body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
-  return{ok:r.ok,status:r.status,error:j.error||("Error "+r.status),data:j};
+  return{ok:r.ok,status:r.status,error:j.error||(r.status===404?"The server program was not found (404). Check that the api folder with services.js and bookings.js is in your GitHub repo, then wait for Vercel to show Ready.":"Error "+r.status),data:j};
  }catch(e){return{ok:false,status:0,error:"Could not reach the booking server."}}
 }
 async function loadServices(){
