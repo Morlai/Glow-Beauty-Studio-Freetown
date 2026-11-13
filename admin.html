@@ -365,9 +365,10 @@ header.site{padding:0;position:sticky;top:0;z-index:20}
         <div class="form" style="margin-top:12px">
           <div><label for="svcName">Service</label><input id="svcName" placeholder="e.g. Gele and styling"></div>
           <div><label for="svcPrice">Price (Le)</label><input id="svcPrice" type="number" min="0"></div>
-          <div><label for="svcImg">Image file (optional)</label><input id="svcImg" placeholder="images/my-service.jpg"></div>
-          <button class="btn" id="addSvc">Add service</button>
+          <div><label for="svcImg">Image file (optional)</label><input id="svcImg" type="file" accept="image/*"></div>
+          <button class="btn" id="addSvc" type="button">Add service</button>
         </div>
+        <p class="warn" id="svcMsg" role="alert"></p>
       </div>
       <div class="card"><h2>Brief checklist</h2><ul class="check" id="reqList"></ul></div>
     </div>
@@ -474,9 +475,12 @@ const defaults={wa:G.wa||"",dlTime:"",
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))||defaults}catch(e){S=defaults}
 if(!S.wa&&G.wa)S.wa=G.wa; // studio number from config.js
-if(G.services)S.services=G.services.map(x=>({...x})); // services always come from config.js
+const BASE=(G.services||S.services||[]).map(x=>({...x})); // services from config.js
+S.extra=[]; // services added here, stored on the server
+function mergeServices(){S.services=BASE.concat(S.extra)}
+mergeServices();
 S.bookings=[];S.blocked=[]; // bookings and closed days live on the server
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,bookings:[],blocked:[]}))}catch(e){}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,bookings:[],blocked:[],extra:[],services:BASE}))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const le=n=>"Le "+Math.round(n).toLocaleString("en");
 const digits=()=>S.wa.replace(/\D/g,"");
@@ -494,7 +498,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
 function renderCampaign(){
  $("wa").value=S.wa;$("dlTime").value=S.dlTime;
  $("waMsg").textContent=S.wa&&!waOK()?"That number looks too short.":"";
- $("svcBody").innerHTML=S.services.map((s,i)=>`<tr><td>${esc(s.n)}</td><td>${le(s.p)}</td><td><button class="x" data-rs="${i}" aria-label="Remove ${esc(s.n)}">×</button></td></tr>`).join("")||`<tr><td colspan="3" class="empty">No services yet.</td></tr>`;
+ $("svcBody").innerHTML=S.services.map((s,i)=>`<tr><td>${s.img?`<img src="${esc(s.img)}" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px">`:""}${esc(s.n)}</td><td>${le(s.p)}</td><td>${s.id?`<button class="x" data-rs="${esc(s.id)}" aria-label="Remove ${esc(s.n)}">×</button>`:'<small style="color:var(--mute)">config.js</small>'}</td></tr>`).join("")||`<tr><td colspan="3" class="empty">No services yet.</td></tr>`;
  const hasSvc=S.services.length>=2;
  const reqs=[["The offer: 15% off December bookings made before 30 November",true],["At least two services ("+S.services.length+" listed)",hasSvc],["The WhatsApp number"+(waOK()?" ("+esc(S.wa)+")":" – add it above"),waOK()],["“Book now” button linked to WhatsApp",waOK()],["Submit by Thursday 22 October"+(S.dlTime?" at "+S.dlTime:" – set the time in the overview"),!!S.dlTime]];
  $("reqList").innerHTML=reqs.map(r=>`<li class="${r[1]?"ok":"no"}"><span class="m">${r[1]?"✓":"!"}</span><span>${r[0]}</span></li>`).join("");
@@ -508,8 +512,46 @@ function renderCampaign(){
 $("wa").oninput=e=>{S.wa=e.target.value;save();renderCampaign()};
 $("wa").onblur=renderCampaign;
 $("dlTime").onchange=e=>{S.dlTime=e.target.value;save();renderCampaign()};
-$("addSvc").onclick=()=>{const n=$("svcName").value.trim(),p=+$("svcPrice").value;if(!n||!(p>0))return;S.services.push({n,p,img:$("svcImg").value.trim()});$("svcName").value=$("svcPrice").value=$("svcImg").value="";save();renderCampaign();renderBookings()};
-$("svcBody").onclick=e=>{const i=e.target.dataset.rs;if(i===undefined)return;S.services.splice(i,1);save();renderCampaign()};
+function imageToDataURL(file){
+ return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{
+   const w0=im.naturalWidth||800,h0=im.naturalHeight||800;
+   for(const [max,q] of [[900,.82],[700,.7],[500,.6]]){
+    const sc=Math.min(1,max/Math.max(w0,h0)),c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(w0*sc));c.height=Math.max(1,Math.round(h0*sc));
+    const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+    const out=c.toDataURL("image/jpeg",q);
+    if(out.length<=580000){URL.revokeObjectURL(url);return res(out)}
+   }
+   URL.revokeObjectURL(url);rej(new Error("That image is too large. Try a smaller photo."));
+  };
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Your browser cannot read this image format. Use JPG, PNG, WebP, GIF or SVG, or save the photo as JPG first."))};
+  im.src=url;
+ });
+}
+$("addSvc").onclick=async()=>{
+ const n=$("svcName").value.trim(),p=+$("svcPrice").value,msg=$("svcMsg"),btn=$("addSvc"),f=$("svcImg").files[0];
+ msg.style.color="";msg.textContent="";
+ if(!n||!(p>0)){msg.textContent="Add the service name and price.";return}
+ btn.disabled=true;msg.textContent="Saving…";
+ try{
+  const image=f?await imageToDataURL(f):"";
+  const r=await api("POST",{n,p,image},null,"/api/services");
+  if(!r.ok){msg.textContent=r.error;return}
+  $("svcName").value=$("svcPrice").value=$("svcImg").value="";
+  await loadServices();
+  msg.style.color="var(--ok)";msg.textContent="Service added. It is now on the website.";
+ }catch(e){msg.textContent=e.message||"Could not add the service."}
+ finally{btn.disabled=false}
+};
+$("svcBody").onclick=async e=>{
+ const id=e.target.dataset.rs;if(!id)return;
+ if(!confirm("Remove this service from the website?"))return;
+ const r=await api("DELETE",null,id,"/api/services");
+ if(!r.ok){alert(r.error);return}
+ await loadServices();
+};
 $("copyCap").onclick=async()=>{try{await navigator.clipboard.writeText($("cap").value);$("copied").textContent="Caption copied."}catch(e){$("cap").select();$("copied").textContent="Press Ctrl+C to copy."}};
 
 // Bookings
@@ -635,18 +677,23 @@ renderCampaign();renderBookings();renderTasks();
 
 // Booking server connection and PIN gate
 let PIN="";try{PIN=sessionStorage.getItem("glow-pin")||""}catch(e){}
-async function api(method,body,id){
+async function api(method,body,id,path){
  try{
-  const r=await fetch("/api/bookings"+(id?"?id="+encodeURIComponent(id):""),{method,headers:{"Content-Type":"application/json","x-admin-pin":PIN},body:body?JSON.stringify(body):undefined});
+  const r=await fetch((path||"/api/bookings")+(id?"?id="+encodeURIComponent(id):""),{method,headers:{"Content-Type":"application/json","x-admin-pin":PIN},body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
   return{ok:r.ok,status:r.status,error:j.error||("Error "+r.status),data:j};
  }catch(e){return{ok:false,status:0,error:"Could not reach the booking server."}}
+}
+async function loadServices(){
+ const r=await api("GET",null,null,"/api/services");
+ if(r.ok){S.extra=r.data.services||[];mergeServices();renderCampaign();renderBookings()}
 }
 async function loadBookings(){
  const r=await api("GET");
  if(r.ok){S.bookings=r.data.bookings||[];S.blocked=r.data.blocked||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
  else $("lastSync").textContent=r.error;
  renderBookings();
+ await loadServices();
 }
 async function unlock(p){
  PIN=p;const r=await api("GET");
@@ -656,6 +703,7 @@ async function unlock(p){
  if(r.ok){S.bookings=r.data.bookings||[];S.blocked=r.data.blocked||[];$("lastSync").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
  else $("lastSync").textContent=r.error;
  renderBookings();
+ await loadServices();
 }
 $("pinGo").onclick=()=>unlock($("pin").value);
 $("pin").addEventListener("keydown",e=>{if(e.key==="Enter")unlock($("pin").value)});
