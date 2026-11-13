@@ -462,7 +462,10 @@ function updSum(){
  const off=d.startsWith("2026-12")&&todayISO<"2026-11-30";
  box.textContent=off?`Price: ${le(sv.p*.85)} (15% off ${le(sv.p)})`:`Price: ${le(sv.p)}${d.startsWith("2026-12")?" (the December offer has ended)":""}`;
 }
-$("cSvc").innerHTML=S.services.map((s,i)=>`<option value="${i}">${esc(s.n)} (${le(s.p)})</option>`).join("");
+function fillSvcSelect(){const keep=(S.services[$("cSvc").value]||{}).n;$("cSvc").innerHTML=S.services.map((s,i)=>`<option value="${i}">${esc(s.n)} (${le(s.p)})</option>`).join("");const k=S.services.findIndex(s=>s.n===keep);if(k>=0)$("cSvc").value=k}
+fillSvcSelect();
+// Services the admin added in Studio HQ are merged in after the page loads
+(async function(){try{const r=await fetch("/api/services");if(!r.ok)return;const j=await r.json();if(j.services&&j.services.length){S.services=(G.services||[]).concat(j.services);renderSite();fillSvcSelect();updSum()}}catch(e){}})();
 ["cSvc","cDate"].forEach(id=>$(id).addEventListener("change",updSum));
 $("pubSvc").addEventListener("click",e=>{const a=e.target.closest("a[data-svc]");if(a){$("cSvc").value=a.dataset.svc;updSum()}});
 $("sendBk").onclick=async()=>{
