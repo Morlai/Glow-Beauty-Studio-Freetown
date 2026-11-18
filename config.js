@@ -8,9 +8,9 @@
    before you publish. To remove a service, delete its line. */
 window.GLOW={
   // WhatsApp number with country code, digits only
-  wa:"23276391399",
+  wa:"+23276391399",
   // How the number is shown to visitors (footer and festive card)
-  waShow:"+232 76 391 399",
+  waShow:"+23276391399",
   // Studio address (shown in "Find us", the footer and the map)
   address:"2 Fisher Street, Off Abach Street, Freetown",
   // Opening hours shown in "Find us". SAMPLE HOURS: change them to your real hours.
