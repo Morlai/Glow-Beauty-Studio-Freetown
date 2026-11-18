@@ -5,7 +5,32 @@ const crypto = require("crypto");
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const PIN = process.env.ADMIN_PIN || "";
+const SHEETS_URL = process.env.SHEETS_URL || ""; // Google Apps Script web app link (Weekly Tasks sheet)
+// Optional: Google Sheet webhook (see google-apps-script.gs). Leave unset to skip the sheet.
+const SHEET_URL = process.env.GOOGLE_SHEET_WEBHOOK || "";
+const SHEET_SECRET = process.env.SHEET_SECRET || "";
 const STATUSES = ["Pending", "Confirmed", "Reminder sent", "Completed", "Cancelled"];
+
+// Sends a booking to the Weekly Tasks Google Sheet. Never blocks or breaks a booking if it fails.
+async function sheet(payload) {
+  if (!SHEETS_URL) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const r = await fetch(SHEETS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+    const j = await r.json();
+    return j && j.success ? j : null;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function redis(...cmd) {
   const r = await fetch(URL_, {
@@ -16,6 +41,36 @@ async function redis(...cmd) {
   const j = await r.json();
   if (j.error) throw new Error(j.error);
   return j.result;
+}
+
+// Sends a booking to the Google Sheet. Never blocks or breaks a booking if the sheet is down.
+const offerApplies = (b) => String(b.date).startsWith("2026-12") && String(b.made) < "2026-11-30";
+async function toSheet(action, b) {
+  if (!SHEET_URL) return;
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), 5000);
+  try {
+    await fetch(SHEET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      redirect: "follow",
+      signal: c.signal,
+      body: JSON.stringify({
+        secret: SHEET_SECRET,
+        action,
+        booking: {
+          id: b.id, made: b.made, date: b.date, time: b.time, name: b.name, phone: b.phone,
+          svc: b.svc, occ: b.occ, price: b.price,
+          final: Math.round(b.price * (offerApplies(b) ? 0.85 : 1)),
+          offer: offerApplies(b) ? "Yes" : "No", status: b.status,
+        },
+      }),
+    });
+  } catch (e) {
+    /* the booking is already saved; ignore sheet errors */
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 const same = (a, b) => {
@@ -99,7 +154,18 @@ module.exports = async (req, res) => {
       if (got !== "OK") return res.status(409).json({ error: "That time is already booked. Please choose another time." });
 
       const booking = { id, name, phone, svc, price, occ, date, time, made, status: "Pending" };
+      const offer = date.startsWith("2026-12") && made < "2026-11-30";
+      const pay = Math.round(price * (offer ? 0.85 : 1));
+      const sheetRes = await sheet({
+        action: "add",
+        task: "Booking: " + name + " | " + svc + " | " + date + " " + time + " | " + occ + " | WhatsApp " + (phone || "-") + " | Le " + pay.toLocaleString("en") + (offer ? " (15% off)" : ""),
+        priority: "High",
+        deadline: date,
+        status: "Pending",
+      });
+      if (sheetRes && sheetRes.id) booking.sheetId = sheetRes.id;
       await redis("HSET", "bookings", id, JSON.stringify(booking));
+      await toSheet("add", booking);
       return res.status(201).json({ ok: true, id });
     }
 
@@ -118,6 +184,8 @@ module.exports = async (req, res) => {
       }
       bk.status = status;
       await redis("HSET", "bookings", id, JSON.stringify(bk));
+      if (bk.sheetId) await sheet({ action: "update", id: bk.sheetId, status });
+      await toSheet("update", bk);
       return res.status(200).json({ ok: true });
     }
 
@@ -129,6 +197,8 @@ module.exports = async (req, res) => {
         const bk = JSON.parse(cur);
         if (bk.status !== "Cancelled") await redis("DEL", "slot:" + bk.date + "|" + bk.time);
         await redis("HDEL", "bookings", id);
+        if (bk.sheetId) await sheet({ action: "delete", id: bk.sheetId });
+        await toSheet("delete", bk);
       }
       return res.status(200).json({ ok: true });
     }
